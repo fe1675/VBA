@@ -6,7 +6,7 @@ Public Sub CoC()
     '
     ' Author:  Fernando Esqueda (fe1675)
     ' Created: 5/19/2020
-    ' Modified: 5/19/2020
+    ' Modified: 5/21/2020
     '
     '
     Dim hrNexusWB As String, hrNexus_sheet As String, hrNexus_rows As Long, hrNexus_cols As Integer, _
@@ -15,10 +15,7 @@ Public Sub CoC()
         find_supv_col As Range, supv_col As Integer, _
         find_last_col As Range, last_col As Integer, vl_form As String, _
         find_CoC_col As Range, CoC_attuid As String, CoC_level() As String, _
-        keep_headers As Variant, save_header As Boolean
-        
-        
-        Dim test As Range
+        keep_headers As Variant, save_header As Boolean, find_col As Range
         
     '
     '
@@ -41,8 +38,8 @@ Public Sub CoC()
     
     base_cell.Select
     
-    Set find_mgt_lvl_col = base_cell.EntireRow.Find(What:="Management Level Indicator")             ' Create an object as a range that finds the cell containing the Management Level Indicator
-    max_supv_lvl = WorksheetFunction.Max(Range(find_mgt_lvl_col.EntireColumn.Address))              ' Use the Management Level Indicator object to find the highest management level in the data set
+    'Set find_mgt_lvl_col = base_cell.EntireRow.Find(What:="Management Level Indicator")             ' Create an object as a range that finds the cell containing the Management Level Indicator
+    'max_supv_lvl = WorksheetFunction.Max(Range(find_mgt_lvl_col.EntireColumn.Address))              ' Use the Management Level Indicator object to find the highest management level in the data set
     
     hrNexus_rows = base_cell.End(xlDown).Row                                                        ' Determine the total rows in the HR Nexus file
     hrNexus_cols = base_cell.End(xlToRight).Column                                                  ' Determine the total columns in the HR Nexus file
@@ -78,19 +75,13 @@ Public Sub CoC()
     last_col = base_cell.End(xlToRight).Column
     save_header = vbEmpty
     
-    '=======================================================================================
-    
-    
     keep_headers = Array("ATTUID", "MGT_LEVEL_INDICATOR", "SUPERVISOR_ATTUID", "WORK_STATE", _
-                        "EMP_STATUS_CODE", "CENET_ID", "CONSULTANT", "CoC Level 1 ATTUID", _
-                        "CoC Level 2 ATTUID", "CoC Level 3 ATTUID", "CoC Level 4 ATTUID", _
-                        "CoC Level 5 ATTUID", "CoC Level 6 ATTUID", "CoC Level 7 ATTUID", _
-                        "CoC Level 8 ATTUID", "CoC Level 9 ATTUID", "CoC Level 10 ATTUID")
+                        "EMP_STATUS_CODE", "CENET_ID", "CONSULTANT")
 
     For i% = 1 To last_col                                                                          ' Cycle through all columns that contain data
-        header = base_cell.Offset(0, i% - 1).Value                                                   ' Determine the header name
+        header = base_cell.Offset(0, i% - 1).Value                                                  ' Determine the header name
         If header = "" Then Exit For                                                                ' Exit the loop if the column is empty
-        For j% = LBound(keep_headers) To UBound(keep_headers)                                         ' Loop through the array that contains the header names of the coulmns to be deleted
+        For j% = LBound(keep_headers) To UBound(keep_headers)                                       ' Loop through the array that contains the header names of the coulmns to be deleted
             Select Case header
                 Case keep_headers(j%)
                     save_header = True
@@ -98,48 +89,71 @@ Public Sub CoC()
         Next j%
         
         If Not save_header = True Then
-            base_cell.Offset(0, i% - 1).EntireColumn.Delete Shift:=xlShiftToLeft                 ' Delete the entire column for any header that does not match the array
-            i% = i% - 1                                                                         ' Reduce i% by one as the column was deleted
+            base_cell.Offset(0, i% - 1).EntireColumn.Delete shift:=xlShiftToLeft                    ' Delete the entire column for any header that does not match the array
+            i% = i% - 1                                                                             ' Reduce i% by one as the column was deleted
         End If
         save_header = False
     Next i
     
-    '=======================================================================================
     
     Set find_supv_col = base_cell.EntireRow.Find(What:="SUPERVISOR_ATTUID")                         ' Create an object as a range that finds the cell containing the supervisor data
     supv_col = find_supv_col.Column                                                                 ' Determine the column address for the cell that contains the Supervisor ATTUID and assign to variable 'supv_col'
     
-    'Set find_last_col = base_cell.EntireRow.Find(What:="TRACKING_CODE")                             ' Create an object as a range that finds the cell containing the last column of data
-    'last_col = find_last_col.Column
     last_col = base_cell.End(xlToRight).Column
     
     For i% = LBound(CoC_level) To UBound(CoC_level)
         If Not CoC_level(i%) = "" Then
             base_cell.Offset(0, last_col + i%) = CoC_level(i%)
             
-            
-            
             vl_form = "=iferror(VLOOKUP(RC[-" & (last_col + i%) & "],'[" & hrNexusWB & "]" & _
                        hrNexus_sheet & "'!R1C1:R" & hrNexus_rows & "C" & hrNexus_cols & "," & (9 + (i% * 2)) & ",FALSE)," & _
-                       "iferror(VLOOKUP(RC[-" & (last_col - supv_col + i%) & "],'[" & hrNexusWB & "]" & _
-                       hrNexus_sheet & "'!R1C1:R" & hrNexus_rows & "C" & hrNexus_cols & "," & (9 + (i% * 2)) & ",FALSE)," & """" & "CoC N/A" & """" & "))"
-            
-            'vl_form = "=iferror(VLOOKUP(RC[-" & (last_col + i%) & "],'[" & hrNexusWB & "]" & _
-                       hrNexus_sheet & "'!R1C1:R" & hrNexus_rows & "C" & hrNexus_cols & "," & (9 + (i% * 2)) & ",FALSE)," & _
-                       "iferror(VLOOKUP(RC[-" & (last_col - 4 + i%) & "],'[" & hrNexusWB & "]" & _
-                       hrNexus_sheet & "'!R1C1:R" & hrNexus_rows & "C" & hrNexus_cols & "," & (9 + (i% * 2)) & ",FALSE)," & """" & "CoC N/A" & """" & "))"
+                       "iferror(VLOOKUP(RC[-" & (last_col - supv_col + 1 + i%) & "],'[" & hrNexusWB & "]" & _
+                       hrNexus_sheet & "'!R1C1:R" & hrNexus_rows & "C" & hrNexus_cols & "," & (9 + (i% * 2)) & ",FALSE)," & """" & "" & """" & "))"
                        
             base_cell.Offset(1, last_col + i%).FormulaR1C1 = vl_form
         End If
     Next i%
     
-    base_cell.Offset(cenet_rows - 1, last_col) = "CoC Placeholder"                                  ' Locate the last row and insert a string as a placeholder
+    Set find_col = base_cell.EntireRow.Find(What:="CENET_ID")
+    col% = find_col.Column
     
-    base_cell.Range(base_cell.Offset(1, last_col), base_cell.Offset(1, last_col).End(xlToRight)).Select ' Select formulas and fill down to the last row
+    base_cell.Offset(0, col% - 1).EntireColumn.Cut
+    base_cell.End(xlToRight).Offset(0, 1).Insert shift:=xlToRight
+    
+    base_cell.Select
+    last_col = base_cell.End(xlToRight).Column
+    
+    For i% = 1 To last_col
+        header = base_cell.Offset(0, i%)
+        
+        Select Case Left(UCase(header), 5)
+            Case "MGT_L"
+                base_cell.Offset(0, i%).EntireColumn.ColumnWidth = 10
+            Case "SUPER"
+                base_cell.Offset(0, i%).EntireColumn.ColumnWidth = 18
+            Case "WORK_"
+                base_cell.Offset(0, i%).EntireColumn.ColumnWidth = 8.3
+            Case "EMP_S"
+                base_cell.Offset(0, i%).EntireColumn.ColumnWidth = 11
+            Case "CONSU"
+                base_cell.Offset(0, i%).EntireColumn.ColumnWidth = 12
+            Case "COC L"
+                base_cell.Offset(0, i%).EntireColumn.ColumnWidth = 17.75
+            Case "CENET"
+                base_cell.Offset(0, i%).EntireColumn.ColumnWidth = 10
+        End Select
+    Next i%
+    
+    Set find_col = base_cell.EntireRow.Find(What:="CoC Level 1 ATTUID")
+    col% = find_col.Column
+    
+    base_cell.Offset(cenet_rows - 1, col% - 1) = "CoC Placeholder"                                  ' Locate the last row and insert a string as a placeholder
+    
+    base_cell.Range(base_cell.Offset(1, col% - 1), base_cell.Offset(1, col% - 1).End(xlToRight).Offset(0, -1)).Select ' Select formulas and fill down to the last row
     Range(Selection, Selection.End(xlDown)).Select                                                      '
     Selection.FillDown                                                                                  '
     
-    base_cell.Range(base_cell.Offset(0, last_col), base_cell.Offset(0, last_col).End(xlToRight)).Select ' Convert formulas to values
+    base_cell.Range(base_cell.Offset(0, col% - 1), base_cell.Offset(0, col% - 1).End(xlToRight).Offset(0, -1)).Select ' Convert formulas to values
     Range(Selection, Selection.End(xlDown)).Select                                                      '
     Selection.Copy                                                                                      '
     Selection.PasteSpecial Paste:=xlPasteValues, Operation:=xlNone, SkipBlanks _
